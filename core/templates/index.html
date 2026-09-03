@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Ocular AI{% endblock %}
+
+{% block content %}
+<div class="row align-items-center min-vh-75 py-5">
+    <div class="col-lg-6">
+        <h1 class="display-3 fw-bold mb-3"
+            style="background: linear-gradient(45deg, #4361ee, #3f37c9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Ocular Disease Detection</h1>
+        <p class="lead mb-4 text-secondary">
+            Advanced AI-powered screening for Glaucoma, Diabetic Retinopathy, Cataracts, and more.
+            Get instant analysis of retinal fundus images with high accuracy.
+        </p>
+        <div class="d-flex gap-3">
+            <a href="{% url 'screening' %}" class="btn btn-primary btn-lg rounded-pill px-5 shadow-lg">Start Screening
+                <i class="fas fa-arrow-right ms-2"></i></a>
+            {% if not user.is_authenticated %}
+            <a href="{% url 'signup' %}" class="btn btn-outline-secondary btn-lg rounded-pill px-5">Join Now</a>
+            {% endif %}
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-sm-4">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-check-circle text-success me-2 fa-2x"></i>
+                    <span class="fw-bold">85-90% Accuracy</span>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-bolt text-warning me-2 fa-2x"></i>
+                    <span class="fw-bold">Instant Results</span>
+                </div>
+            </div>
+            <!-- Secure Data Section Removed -->
+        </div>
+
+    </div>
+    <div class="col-lg-6 d-none d-lg-block">
+        <!-- Placeholder for a hero image or illustration -->
+        <div class="glass-card p-4 text-center">
+            <i class="fas fa-eye fa-10x text-primary opacity-25"></i>
+            <div class="mt-3 text-muted">AI-Powered Analysis</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

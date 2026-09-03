@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up - Ocular AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-8 col-lg-5">
+        <div class="glass-card p-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">Create Account</h2>
+                <p class="text-muted">Join Ocular AI for early disease detection</p>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">First Name</label>
+                        <input type="text" name="first_name" class="form-control rounded-pill bg-light border-0"
+                            required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Last Name</label>
+                        <input type="text" name="last_name" class="form-control rounded-pill bg-light border-0"
+                            required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted">Email (Username)</label>
+                    <input type="email" name="email" class="form-control rounded-pill bg-light border-0" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted">Password</label>
+                    <input type="password" name="password" class="form-control rounded-pill bg-light border-0" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label text-muted">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control rounded-pill bg-light border-0"
+                        required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 rounded-pill mb-3">Sign Up</button>
+                <div class="text-center">
+                    <small>Already have an account? <a href="{% url 'login' %}"
+                            class="text-decoration-none fw-bold">Login</a></small>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

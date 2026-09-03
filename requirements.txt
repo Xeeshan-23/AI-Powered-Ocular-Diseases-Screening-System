@@ -1,0 +1,21 @@
+Django>=5.0,<5.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+
+torch==2.2.2
+torchvision==0.17.2
+timm==0.9.16
+opencv-python==4.9.0.80
+grad-cam==1.5.0
+Pillow==10.3.0
+
+numpy>=1.26.4 
+pandas>=2.2.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+dj-database-url
+
+# --- External APIs ---
+requests==2.31.0
+google-generativeai==0.4.1

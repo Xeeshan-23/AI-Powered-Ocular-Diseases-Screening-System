@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ocular Screening Report - {{ user.username }}</title>
+    <style>
+        /* 1. Reduced page margins from 2cm to 1cm to gain vertical space */
+        @page {
+            size: a4 portrait;
+            margin: 1cm;
+        }
+        body { 
+            font-family: Helvetica, Arial, sans-serif; 
+            font-size: 13px; /* Slightly smaller base font */
+            color: #333333; 
+        }
+        h1 { 
+            color: #2C3E50; 
+            text-align: center; 
+            border-bottom: 2px solid #3498DB; 
+            padding-bottom: 8px; 
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        /* Patient Details Section */
+        .details-table { 
+            width: 100%; 
+            margin-bottom: 15px; /* Reduced from 30px */
+            border-collapse: collapse;
+        }
+        .details-table td { 
+            padding: 5px; /* Reduced padding */
+            border-bottom: 1px solid #EEEEEE;
+        }
+        .section-title {
+            font-size: 16px;
+            color: #34495E;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #DDDDDD;
+            padding-bottom: 3px;
+        }
+        /* AI Result Highlight Box */
+        .result-box { 
+            background-color: #F8F9FA; 
+            border: 1px solid #BDC3C7; 
+            padding: 12px; /* Reduced from 20px */
+            text-align: center; 
+            margin-bottom: 20px; /* Reduced from 30px */
+        }
+        .diagnosis { 
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #DC3545; 
+            margin: 5px 0;
+        }
+        .diagnosis.normal {
+            color: #28A745; 
+        }
+        .confidence { 
+            font-size: 14px; 
+            color: #34495E; 
+        }
+        
+        /* Visual Progress Bars */
+        .prob-container {
+            margin-bottom: 8px; /* Reduced from 15px */
+        }
+        .prob-header {
+            width: 100%;
+            margin-bottom: 2px;
+        }
+        .prob-header td {
+            padding: 0;
+            font-size: 12px;
+        }
+        .prob-name {
+            color: #555555;
+            text-align: left;
+        }
+        .prob-value {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .disclaimer { 
+            text-align: center; 
+            font-size: 10px; /* Smaller text for the footer */
+            color: #7F8C8D; 
+            margin-top: 20px; /* Reduced from 50px */
+            border-top: 1px solid #DDDDDD; 
+            padding-top: 10px; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>AI Powered Ocular Diseases Screening Report</h1>
+
+    <!-- COMPLETE USER DETAILS -->
+    <div class="section-title">Patient Demographics</div>
+    <table class="details-table">
+        <tr>
+            <td style="width: 50%;"><strong>Patient Name:</strong> {{ user.get_full_name|default:user.username }}</td>
+            <td style="width: 50%;"><strong>Report Date:</strong> {% now "F d, Y" %}</td>
+        </tr>
+        <tr>
+            <td><strong>Age:</strong> {{ profile.age|default:"Not Provided" }}</td>
+            <td><strong>Gender:</strong> {{ profile.gender|default:"Not Provided" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Phone:</strong> {{ profile.phone|default:"Not Provided" }}</td>
+            <td><strong>Email:</strong> {{ user.email }}</td>
+        </tr>
+        <tr>
+            <td colspan="2"><strong>Home Address:</strong> {{ profile.address|default:"Not Provided" }}</td>
+        </tr>
+    </table>
+
+    <!-- PRIMARY DIAGNOSIS -->
+    <div class="result-box">
+        <div style="font-size: 12px; color: #7F8C8D; text-transform: uppercase; letter-spacing: 1px;">Primary AI Diagnosis</div>
+        
+        <div class="diagnosis {% if 'Normal' in screening.diagnosis %}normal{% endif %}">
+            {{ screening.diagnosis }}
+        </div>
+        
+        <div class="confidence">
+            <strong>Confidence Score:</strong> {{ screening.confidence }}
+        </div>
+    </div>
+
+    <!-- VISUAL PROBABILITY BARS -->
+    <div class="section-title">Detailed Probability Analysis</div>
+    
+    {% for disease, prob in screening.all_probs.items %}
+    <div class="prob-container">
+        <!-- Label and Percentage -->
+        <table class="prob-header">
+            <tr>
+                <td class="prob-name">{{ disease }}</td>
+                <td class="prob-value">{{ prob }}</td>
+            </tr>
+        </table>
+        
+        <!-- The Visual Bar -->
+        <table style="width: 100%; background-color: #E9ECEF;" cellpadding="0" cellspacing="0">
+            <tr>
+                <td style="width: {{ prob }}; background-color: {% if 'Normal' in disease %}#28A745{% else %}#DC3545{% endif %}; height: 12px;"></td>
+                <!-- Empty cell to fill the remaining width -->
+                <td></td>
+            </tr>
+        </table>
+        <!-- Notice I removed the <br/> tag here that was wasting vertical space! -->
+    </div>
+    {% endfor %}
+
+    <!-- FOOTER DISCLAIMER -->
+    <div class="disclaimer">
+        <strong>Medical Disclaimer:</strong> This document was automatically generated by the Ocular AI Deep Learning system. 
+        It is intended for preliminary screening and triage purposes only. It does not constitute a definitive medical diagnosis. 
+        Please consult a certified ophthalmologist or eye care specialist for clinical verification.
+        <br><br>
+        Generated by Ocular AI Screening System.
+    </div>
+
+</body>
+</html>

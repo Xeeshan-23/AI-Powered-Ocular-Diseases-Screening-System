@@ -1,0 +1,19 @@
+.env
+check_models.py
+fix_db.py
+docker-compose.yml
+# Exclude heavy model weights
+models/
+*.pth
+=======
+*.pth
+__pycache__/
+*.py[cod]
+migrations/
+media/
+fix_specialists.py
+venv/
+db.sqlite3/
+
+
+
