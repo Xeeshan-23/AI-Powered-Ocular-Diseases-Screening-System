@@ -53,7 +53,8 @@ docker compose exec web python manage.py migrate
 
 ### Step 5: Create an Administrator Account
 To access the Admin Dashboard and review system feedback, create a superuser account:
-```bashdocker compose exec web python manage.py createsuperuser
+```bash
+docker compose exec web python manage.py createsuperuser
 ```
 Accessing the Application
 The system is now fully deployed and running locally in your Docker containers!
