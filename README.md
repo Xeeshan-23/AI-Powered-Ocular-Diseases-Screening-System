@@ -52,17 +52,16 @@ docker compose exec web python manage.py createsuperuser
 Accessing the Application
 The system is now fully deployed and running locally in your Docker containers!
 
-<<<<<<< HEAD
-* Main Application Dashboard: Open your browser and navigate to http://localhost:8000
-* Admin Control Panel: Navigate to http://localhost:8000/admin
-=======
 * **Main Application Dashboard: Open your browser and navigate to http://localhost:8000**
 * **Admin Control Panel: Navigate to http://localhost:8000/admin**
->>>>>>> db3a66d (fixing the authentication bugs)
 
 Running Automated Tests
 To verify system integrity and validate the MVT architecture and security protocols, run the automated test suite:
 Bash
 docker compose exec web python manage.py test core
+
+###
+``` Email: mzeeshansadiq@outlook.com | to get the model file.
+###
 
 

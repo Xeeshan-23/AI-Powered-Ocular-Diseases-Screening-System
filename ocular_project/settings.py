@@ -15,14 +15,6 @@ import os
 from dotenv import load_dotenv # Make sure you have python-dotenv installed
 
 
-# # 1. Load the .env file
-# load_dotenv()
-
-# BASE_DIR = Path(__file__).resolve().parent.parent
-
-# # 2. Pull the key from the environment into a Django setting
-# GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,8 +22,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+#load the .env file variables:
+load_dotenv()
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-fyaezi87^g96wn37^b2blaz2&v49-^99pqf^!&x+$-2)##4%21'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-local-fallback-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -51,11 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD
     'core',  # <--- Add this
-=======
-    'core',  
->>>>>>> db3a66d (fixing the authentication bugs)
 ]
 
 MIDDLEWARE = [
@@ -88,36 +79,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ocular_project.wsgi.application'
 
 
-# Database
-<<<<<<< HEAD
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-# Check if we are running inside Docker
-if os.environ.get('DATABASE_URL'):
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
-    }
-else:
-    # Your existing local database config
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-=======
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ocular_db',
-        'USER': 'postgres',
-        'PASSWORD': '7777',
-        'HOST': 'localhost',  
+        'ENGINE': 'django.db.postgresql_backend',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
         'PORT': '5432',
     }
 }
->>>>>>> db3a66d (fixing the authentication bugs)
 
 
 # Password validation
