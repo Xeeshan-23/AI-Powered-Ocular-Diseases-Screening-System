@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Find Specialist - Ocular AI{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- MapLibre GL CSS -->
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
 
 <div class="row mb-4 mt-3">
     <div class="col-md-8">
@@ -12,10 +14,15 @@
     </div>
     <div class="col-md-4">
         <div class="d-flex gap-2">
-            <input class="form-control rounded-pill" type="text" id="customLocation" placeholder="Search city (e.g., Rawalpindi)" aria-label="Location">
-            <button type="button" class="btn btn-outline-secondary rounded-circle" id="gpsBtn" onclick="useGPSLocation()" title="Use My GPS">
+            <!-- Search Input -->
+            <input class="form-control rounded-pill" type="text" id="customLocation" placeholder="Search city (e.g., Lahore)">
+            
+            <!-- GPS Button -->
+            <button type="button" class="btn btn-outline-secondary rounded-circle" onclick="useGPSLocation()" title="Use My GPS">
                 <i class="fas fa-crosshairs"></i>
             </button>
+            
+            <!-- Search Button -->
             <button class="btn btn-primary rounded-circle" type="button" onclick="searchCustomLocation()">
                 <i class="fas fa-search"></i>
             </button>
@@ -33,7 +40,6 @@
             <div class="card-body p-0 overflow-auto" style="height: 65vh;" id="results-list">
                 <div class="text-center mt-5" id="loading-spinner">
                     <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Loading map...</p>
                 </div>
             </div>
         </div>
@@ -42,46 +48,35 @@
     <div class="col-md-8 mb-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body p-0">
-                <div id="map" style="height: 65vh; width: 100%; border-radius: 0 5px 5px 0; background-color: #e5e3df; z-index: 1;"></div>
+                <!-- Map Container -->
+                <div id="map" style="height: 65vh; width: 100%; border-radius: 0 5px 5px 0; background-color: #f8f9fa;"></div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- MapLibre GL JS -->
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
 <script>
-let map;
-let markerLayer;
-
-// Fallback to Rawalpindi/Islamabad Area
-const fallbackLocation = { lat: 33.5973, lng: 73.0479, name: "Rawalpindi" };
-
-// Wait for the page to fully load before starting the map
-document.addEventListener("DOMContentLoaded", function() {
-    initMap();
+// Initialize MapLibre with OpenFreeMap Liberty Style
+const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/liberty', // Free 3D Vector Tiles
+    center: [73.0479, 33.5973], // Note: MapLibre uses [Longitude, Latitude]
+    zoom: 14,
+    pitch: 45, // Angled for 3D view
+    bearing: -17.6 // Slight rotation
 });
 
-function initMap() {
-    // Start map
-    map = L.map('map').setView([fallbackLocation.lat, fallbackLocation.lng], 13);
-    
-    // Load the visual map tiles from OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+// Add Navigation Controls (Zoom & Rotation)
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    markerLayer = L.layerGroup().addTo(map);
-    
-    // Automatically trigger GPS
-    useGPSLocation(); 
-}
+let currentMarkers = [];
 
+// 1. Geolocation Logic
 function useGPSLocation() {
     document.getElementById("status-text").innerText = "Locating you via GPS...";
-    document.getElementById("results-list").innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div></div>';
-
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -89,166 +84,181 @@ function useGPSLocation() {
                 const lng = position.coords.longitude;
                 loadMapArea(lat, lng, "Showing clinics near your GPS location");
             },
-            (error) => { 
-                console.warn("GPS Denied or Failed");
-                loadMapArea(fallbackLocation.lat, fallbackLocation.lng, "GPS denied. Showing default area."); 
-            },
-            { timeout: 10000 } // Give up if it takes longer than 10 seconds
+            (error) => loadMapArea(33.5973, 73.0479, "GPS denied. Showing Rawalpindi area."),
+            { timeout: 10000 }
         );
-    } else {
-        loadMapArea(fallbackLocation.lat, fallbackLocation.lng, "Browser GPS not supported. Showing default area.");
     }
 }
 
+// 2. Load Area & Fetch Data
+function loadMapArea(lat, lng, statusMsg) {
+    document.getElementById("status-text").innerText = statusMsg;
+    
+    // Fly smoothly to new location using WebGL hardware acceleration
+    map.flyTo({ center: [lng, lat], zoom: 14, essential: true });
+
+    // Clear old markers
+    currentMarkers.forEach(marker => marker.remove());
+    currentMarkers = [];
+
+    // Add Blue User Pin
+    const userMarker = new maplibregl.Marker({ color: "#3b82f6" })
+        .setLngLat([lng, lat])
+        .setPopup(new maplibregl.Popup().setHTML("<b style='color: black;'>You are here</b>"))
+        .addTo(map);
+    currentMarkers.push(userMarker);
+
+    // Call the strict real data API fetcher
+    fetchRealClinics(lat, lng);
+}
+
+// 3. Strict Real Data API Integration (Using POST Request)
+function fetchRealClinics(centerLat, centerLng) {
+    const listContainer = document.getElementById("results-list");
+    listContainer.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Searching map...</p></div>';
+    
+    const overpassQuery = `
+        [out:json][timeout:25];
+        (
+          node["amenity"="hospital"](around:5000,${centerLat},${centerLng});
+          node["amenity"="clinic"](around:5000,${centerLat},${centerLng});
+          node["healthcare"="doctor"](around:5000,${centerLat},${centerLng});
+        );
+        out 15;
+    `;
+
+    // Using POST instead of GET prevents URL length errors and bypasses strict browser CORS caching
+    fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `data=${encodeURIComponent(overpassQuery)}`
+    })
+        .then(res => {
+            if (!res.ok) throw new Error(`API Error: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            listContainer.innerHTML = "";
+            
+            const validClinics = data.elements ? data.elements.filter(clinic => clinic.tags && clinic.tags.name) : [];
+
+            if (validClinics.length > 0) {
+                validClinics.forEach(clinic => {
+                    const address = clinic.tags["addr:street"] || clinic.tags["addr:full"] || "Address not provided";
+                    addClinicToMap(clinic.tags.name, address, clinic.lat, clinic.lon, listContainer);
+                });
+            } else {
+                listContainer.innerHTML = `
+                    <div class="text-center mt-5 p-3">
+                        <i class="fas fa-search-location fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted fw-bold">No registered clinics found.</h6>
+                        <small class="text-muted">We couldn't find any medical centers within 5km of this location on OpenStreetMap.</small>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error("OSM API Error:", err);
+            listContainer.innerHTML = `
+                <div class="text-center mt-5 p-3 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h6 class="fw-bold">Connection Error</h6>
+                    <small>The map server rejected the request. If this persists, try connecting your laptop to a mobile hotspot to refresh your IP address.</small>
+                </div>
+            `;
+        });
+}
+
+// 4. Render Clinics & Red Markers
+function addClinicToMap(name, address, lat, lng, container) {
+    // Red Marker
+    const marker = new maplibregl.Marker({ color: "#ef4444" })
+        .setLngLat([lng, lat])
+        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
+            <b style="color: black; font-size: 14px;">${name}</b><br>
+            <span style="color: gray;">${address}</span><br>
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-size: 12px;">View on Google Maps</a>
+        `))
+        .addTo(map);
+    currentMarkers.push(marker);
+
+    // Sidebar Item
+    const div = document.createElement("div");
+    div.className = "card border-0 border-bottom rounded-0 p-3 list-group-item-action";
+    div.style.cursor = "pointer";
+    div.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                ${name.charAt(0)}
+            </div>
+            <div class="ms-3 flex-grow-1">
+                <h6 class="mb-0 fw-bold text-dark">${name}</h6>
+                <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${address}</small>
+            </div>
+        </div>
+    `;
+    
+    div.addEventListener("click", () => {
+        map.flyTo({ center: [lng, lat], zoom: 16 });
+        marker.togglePopup();
+    });
+
+    container.appendChild(div);
+}
+
+// Start GPS once the map finishes its initial WebGL mount
+map.on('load', () => {
+    useGPSLocation();
+});
+
+// 5. Custom Location Search (Geocoding)
 function searchCustomLocation() {
-    const city = document.getElementById("customLocation").value;
-    if (!city) { alert("Please enter a city name."); return; }
+    const cityInput = document.getElementById("customLocation").value.trim();
+    if (!cityInput) {
+        alert("Please enter a city or location name.");
+        return;
+    }
 
-    document.getElementById("status-text").innerText = `Searching in ${city}...`;
-    document.getElementById("results-list").innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div></div>';
+    const listContainer = document.getElementById("results-list");
+    document.getElementById("status-text").innerText = `Searching for ${cityInput}...`;
+    listContainer.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Searching map...</p></div>';
 
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`)
+    // Call Nominatim API to convert city name to Lat/Lng coordinates
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityInput)}`)
         .then(response => response.json())
         .then(data => {
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
-                loadMapArea(lat, lng, `Showing clinics in ${city}`);
+                
+                // Move the map and fetch new clinics for these coordinates
+                loadMapArea(lat, lng, `Showing clinics in ${cityInput}`);
             } else {
-                alert("Could not find that city. Please try another name.");
-                useGPSLocation();
+                alert("Could not find that location. Please try a different name.");
+                document.getElementById("status-text").innerText = "Search failed.";
+                listContainer.innerHTML = "<p class='p-3 text-muted text-center'>Location not found.</p>";
             }
         })
         .catch(err => {
             console.error("Geocoding Error:", err);
-            alert("Search failed. Check your internet connection.");
+            alert("Search failed. Please check your internet connection.");
+            document.getElementById("status-text").innerText = "Network Error.";
         });
 }
 
-function loadMapArea(lat, lng, statusMsg) {
-    document.getElementById("status-text").innerText = statusMsg;
-    
-    // Move map to the new coordinates
-    map.setView([lat, lng], 13);
-    markerLayer.clearLayers();
-
-    // Drop Blue Pin for User
-    const userIcon = L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-    });
-    L.marker([lat, lng], {icon: userIcon}).addTo(markerLayer).bindPopup("<b>You are here</b>").openPopup();
-
-    generateDemoClinics(lat, lng);
-}
-
-// 1. Fetch REAL clinics using the OpenStreetMap Overpass API
-function generateDemoClinics(centerLat, centerLng) {
-    const listContainer = document.getElementById("results-list");
-    listContainer.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Finding real clinics nearby...</p></div>';
-
-    // Query OSM for real hospitals/clinics within a 10km radius
-    const overpassQuery = `
-        [out:json];
-        (
-          node["amenity"="hospital"](around:10000,${centerLat},${centerLng});
-          node["amenity"="clinic"](around:10000,${centerLat},${centerLng});
-          node["healthcare"="doctor"](around:10000,${centerLat},${centerLng});
-        );
-        out 10;
-    `;
-
-    fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
-        .then(response => response.json())
-        .then(data => {
-            listContainer.innerHTML = "";
-            
-            if (data.elements && data.elements.length > 0) {
-                // Filter out results without names to keep the UI clean
-                const validClinics = data.elements.filter(e => e.tags && e.tags.name).slice(0, 5);
-                
-                if (validClinics.length > 0) {
-                    validClinics.forEach(clinic => {
-                        const name = clinic.tags.name;
-                        const address = clinic.tags["addr:street"] || clinic.tags["addr:full"] || "Local Medical Center";
-                        const rating = (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1); // Generate a realistic rating
-                        addClinicToMap(name, address, rating, clinic.lat, clinic.lon, listContainer);
-                    });
-                    return; // Exit successfully
-                }
+// Trigger search when the user presses "Enter" on their keyboard
+document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById("customLocation");
+    if (searchInput) {
+        searchInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchCustomLocation();
             }
-            
-            // Fallback if no real clinics are mapped in that specific area
-            loadFallbackClinics(centerLat, centerLng, listContainer);
-        })
-        .catch(err => {
-            console.error("OSM API Error:", err);
-            listContainer.innerHTML = "";
-            loadFallbackClinics(centerLat, centerLng, listContainer);
         });
-}
-
-// 2. Fallback generator just in case the API is slow during your presentation
-function loadFallbackClinics(centerLat, centerLng, listContainer) {
-    const demoClinics = [
-        { name: "City Vision Care", latOffset: 0.012, lngOffset: 0.015, rating: "4.8", address: "Main Commercial Area" },
-        { name: "Regional Eye Specialists", latOffset: -0.008, lngOffset: 0.020, rating: "4.5", address: "Medical Tower" },
-        { name: "Advanced Laser Center", latOffset: 0.018, lngOffset: -0.010, rating: "4.9", address: "City Center Boulevard" },
-        { name: "Clear Sight Ophthalmologists", latOffset: -0.015, lngOffset: -0.015, rating: "4.6", address: "Health Avenue" }
-    ];
-
-    demoClinics.forEach(clinic => {
-        const cLat = centerLat + clinic.latOffset;
-        const cLng = centerLng + clinic.lngOffset;
-        addClinicToMap(clinic.name, clinic.address, clinic.rating, cLat, cLng, listContainer);
-    });
-}
-
-// 3. Render the card and FIX the directions using Google Search
-function addClinicToMap(name, address, rating, cLat, cLng, listContainer) {
-    
-    // THE ULTIMATE FIX: Search Google Maps by Name & Address to bridge the OSM/Google gap
-    const searchQuery = `${name} ${address}`;
-    const dirUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
-
-    const clinicIcon = L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-    });
-
-    const marker = L.marker([cLat, cLng], {icon: clinicIcon}).addTo(markerLayer);
-    marker.bindPopup(`<b>${name}</b><br>${address}<br><a href="${dirUrl}" target="_blank">View on Google Maps</a>`);
-
-    const div = document.createElement("div");
-    div.className = "card border-0 border-bottom rounded-0 p-3 list-group-item-action";
-    div.style.cursor = "pointer";
-    
-    div.innerHTML = `
-        <div class="d-flex align-items-center mb-2">
-            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 45px; height: 45px; font-size: 1.2rem;">
-                ${name.charAt(0)}
-            </div>
-            <div class="ms-3 flex-grow-1">
-                <h6 class="mb-0 fw-bold text-dark">${name}</h6>
-                <small class="text-primary fw-semibold"><i class="fas fa-star text-warning"></i> ${rating}</small>
-            </div>
-        </div>
-        <p class="small text-muted mb-2"><i class="fas fa-map-marker-alt me-2 text-danger"></i>${address}</p>
-        <div class="d-flex gap-2 mt-2">
-            <a href="${dirUrl}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill flex-grow-1"><i class="fas fa-search-location"></i> View on Google Maps</a>
-        </div>
-    `;
-    
-    div.addEventListener("click", (e) => {
-        if(e.target.closest('a')) return;
-        map.setView([cLat, cLng], 15);
-        marker.openPopup();
-    });
-
-    listContainer.appendChild(div);
-}
-
+    }
+});
 </script>
 {% endblock %}
