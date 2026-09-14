@@ -1,6 +1,7 @@
 #  Ocular AI - Disease Screening System
 
 An AI-powered ocular disease screening platform built with Django and PyTorch. This system utilizes a trained EfficientNet-B3 machine learning model to analyze fundus images, featuring Explainable AI (XAI) Grad-CAM heatmaps, a Gemini-powered medical chatbot, and automated PDF reporting.
+<img width="1920" height="1080" alt="Screenshot (104)" src="https://github.com/user-attachments/assets/8346f7a4-aec5-4345-b58a-c74bb45ee998" />
 
 ---
 
@@ -67,5 +68,18 @@ To verify system integrity and validate the MVT architecture and security protoc
 ``` Bash
 docker compose exec web python manage.py test core
 ```
-* **Email: mzeeshansadiq@outlook.com | to get the model file.
+* Email: mzeeshansadiq@outlook.com | to get the model file.
+---
+<img width="1920" height="1080" alt="Screenshot (107)" src="https://github.com/user-attachments/assets/a8ac9cf2-1f1f-48c2-8814-bf73e138c4e7" />
 
+---
+
+<img width="1920" height="1080" alt="Screenshot (108)" src="https://github.com/user-attachments/assets/725cc341-d410-4776-bfa8-e7a0da1ca947" />
+
+---
+<img width="1920" height="1080" alt="Screenshot (109)" src="https://github.com/user-attachments/assets/c544cef7-171b-407d-8827-a8989d132fd6" />
+
+---
+<img width="1920" height="1080" alt="Screenshot (111)" src="https://github.com/user-attachments/assets/c633e58a-2924-4710-8e20-4431a2e7f918" />
+
+---
