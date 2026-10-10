@@ -29,6 +29,7 @@ urlpatterns = [
     path('screening/', views.screening_view, name='screening'),
     path('history/', views.history_view, name='history'),
     path('specialists/', views.specialists_view, name='specialists'),
+    path('api/get-clinics/', views.get_nearby_clinics, name='get_clinics'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('update_profile/', views.update_profile, name='update_profile'),
     path('change_password/', views.change_password, name='change_password'),

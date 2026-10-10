@@ -1,7 +1,9 @@
 import os
+import requests
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.http import JsonResponse
+from django.views.decorators.http import require_GET
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -285,3 +287,41 @@ def submit_feedback(request):
         messages.success(request, "Thank you! Your feedback has been received.")
         return redirect('dashboard')
     return render(request, 'feedback.html')
+
+@require_GET
+def get_nearby_clinics(request):
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+
+    if not lat or not lng:
+        return JsonResponse({"error": "Missing coordinates"}, status=400)
+
+    # Use a highly compressed query with a 5km radius
+    overpass_query = f"""
+        [out:json][timeout:15];
+        (
+          node["amenity"~"hospital|clinic"](around:5000,{lat},{lng});
+          node["healthcare"="doctor"](around:5000,{lat},{lng});
+        );
+        out 15;
+    """
+    
+    # Using the French OSM server which is more developer-friendly
+    url = "https://overpass.openstreetmap.fr/api/interpreter"
+    
+    try:
+        # Django makes the request server-to-server, bypassing browser CORS
+        response = requests.post(
+            url, 
+            data={"data": overpass_query},
+            headers={'User-Agent': 'OcularAI-FYP-App/1.0'},
+            timeout=20
+        )
+        
+        if response.status_code == 200:
+            return JsonResponse(response.json(), safe=False)
+        else:
+            return JsonResponse({"error": "Map server blocked the request"}, status=response.status_code)
+            
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=503)

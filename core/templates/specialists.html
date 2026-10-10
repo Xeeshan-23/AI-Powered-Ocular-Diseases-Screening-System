@@ -112,63 +112,48 @@ function loadMapArea(lat, lng, statusMsg) {
     fetchRealClinics(lat, lng);
 }
 
-// 3. Strict Real Data API Integration (Using POST Request)
-function fetchRealClinics(centerLat, centerLng) {
+// 3. Proxy API Integration (Bypasses Browser CORS/Blocks)
+async function fetchRealClinics(centerLat, centerLng) {
     const listContainer = document.getElementById("results-list");
-    listContainer.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Searching map...</p></div>';
+    listContainer.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Searching via secure proxy...</p></div>';
     
-    const overpassQuery = `
-        [out:json][timeout:25];
-        (
-          node["amenity"="hospital"](around:5000,${centerLat},${centerLng});
-          node["amenity"="clinic"](around:5000,${centerLat},${centerLng});
-          node["healthcare"="doctor"](around:5000,${centerLat},${centerLng});
-        );
-        out 15;
-    `;
+    try {
+        // Call your local Django backend instead of the public API directly
+        const response = await fetch(`{% url 'get_clinics' %}?lat=${centerLat}&lng=${centerLng}`);
+        const data = await response.json();
 
-    // Using POST instead of GET prevents URL length errors and bypasses strict browser CORS caching
-    fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: `data=${encodeURIComponent(overpassQuery)}`
-    })
-        .then(res => {
-            if (!res.ok) throw new Error(`API Error: ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            listContainer.innerHTML = "";
-            
-            const validClinics = data.elements ? data.elements.filter(clinic => clinic.tags && clinic.tags.name) : [];
+        if (!response.ok) {
+            throw new Error(data.error || "Server error");
+        }
 
-            if (validClinics.length > 0) {
-                validClinics.forEach(clinic => {
-                    const address = clinic.tags["addr:street"] || clinic.tags["addr:full"] || "Address not provided";
-                    addClinicToMap(clinic.tags.name, address, clinic.lat, clinic.lon, listContainer);
-                });
-            } else {
-                listContainer.innerHTML = `
-                    <div class="text-center mt-5 p-3">
-                        <i class="fas fa-search-location fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted fw-bold">No registered clinics found.</h6>
-                        <small class="text-muted">We couldn't find any medical centers within 5km of this location on OpenStreetMap.</small>
-                    </div>
-                `;
-            }
-        })
-        .catch(err => {
-            console.error("OSM API Error:", err);
+        listContainer.innerHTML = "";
+        
+        const validClinics = data.elements ? data.elements.filter(clinic => clinic.tags && clinic.tags.name) : [];
+
+        if (validClinics.length > 0) {
+            validClinics.forEach(clinic => {
+                const address = clinic.tags["addr:street"] || clinic.tags["addr:full"] || "Address not provided";
+                addClinicToMap(clinic.tags.name, address, clinic.lat, clinic.lon, listContainer);
+            });
+        } else {
             listContainer.innerHTML = `
-                <div class="text-center mt-5 p-3 text-danger">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                    <h6 class="fw-bold">Connection Error</h6>
-                    <small>The map server rejected the request. If this persists, try connecting your laptop to a mobile hotspot to refresh your IP address.</small>
+                <div class="text-center mt-5 p-3">
+                    <i class="fas fa-search-location fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted fw-bold">No registered clinics found.</h6>
+                    <small class="text-muted">We couldn't find any medical centers within 5km of this location.</small>
                 </div>
             `;
-        });
+        }
+    } catch (err) {
+        console.error("Backend Proxy Error:", err);
+        listContainer.innerHTML = `
+            <div class="text-center mt-5 p-3 text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h6 class="fw-bold">Connection Error</h6>
+                <small>Failed to retrieve data through the secure proxy. Please ensure you have internet access and try again.</small>
+            </div>
+        `;
+    }
 }
 
 // 4. Render Clinics & Red Markers
